@@ -1,0 +1,23 @@
+{
+  "name": "lodgemaster-scrapper",
+  "version": "1.0.0",
+  "description": "Pull data securily from lodgemaster without any available API",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lodge104/lodgemaster-scrapper.git"
+  },
+  "author": "Nicholas Anderson",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Lodge104/lodgemaster-scrapper/issues"
+  },
+  "homepage": "https://github.com/Lodge104/lodgemaster-scrapper#readme",
+  "dependencies": {
+    "puppeteer": "^19.7.2"
+  }
+}
