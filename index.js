@@ -1,17 +1,27 @@
-import * as dotenv from 'dotenv'
-dotenv.config()
-import puppeteer from 'puppeteer';
+const puppeteer = require("puppeteer-core");
+const chromium = require("@sparticuz/chromium");
 
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 // Set the AWS Region.
 const REGION = "us-east-1"; //e.g. "us-east-1"
 // Create an Amazon DynamoDB service client object.
 const ddbClient = new DynamoDBClient({ region: REGION });
 
-import { BatchWriteItemCommand } from "@aws-sdk/client-dynamodb";
+const { BatchWriteItemCommand } = require("@aws-sdk/client-dynamodb");
+console.log('Loading function');
 
-(async () => {
-    const browser = await puppeteer.launch({headless: true});
+exports.handler = async (event) => {
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(
+      process.env.AWS_EXECUTION_ENV
+      ? '/opt/nodejs/node_modules/@sparticuz/chromium/bin'
+      : undefined,
+      ),
+      headless: chromium.headless,
+      ignoreHTTPSErrors: true,
+      });
     const page = await browser.newPage();
   
     await page.goto('https://lodgemaster-client.oa-bsa.org/');
@@ -88,5 +98,5 @@ import { BatchWriteItemCommand } from "@aws-sdk/client-dynamodb";
     run();
     await browser.close();
 
-  })();
+  };
 
