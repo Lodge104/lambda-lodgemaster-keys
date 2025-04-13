@@ -25,7 +25,7 @@ exports.handler = async (event, context) => {
   const page = await browser.newPage();
 
   try {
-    await page.goto("https://lodgemaster-client.oa-bsa.org/");
+    await page.goto("https://lodgemaster-client.oa-scouting.org/");
 
     // Set screen size
     await page.setViewport({ width: 1080, height: 1024 });
