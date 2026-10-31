@@ -10,7 +10,7 @@ phases:
       - npm ci
   build:
     commands:
-      - sam build --template template.yaml
+      - sam build --template "${SAM_TEMPLATE}"
       - . ./assume-role.sh ${PROD_PIPELINE_EXECUTION_ROLE} prod-package
       - sam package --s3-bucket ${PROD_ARTIFACT_BUCKET}
                     --region ${PROD_REGION}
