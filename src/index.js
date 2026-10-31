@@ -15,7 +15,7 @@ const {
 } = require("@aws-sdk/client-dynamodb");
 const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
 
-const REGION = "us-east-1";
+const REGION = process.env.AWS_REGION || "us-east-1";
 const TABLE_NAME = process.env.TABLE_NAME || "lodge104-keys";
 
 // LodgeMaster credentials live in SSM Parameter Store (SecureString), never

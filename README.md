@@ -34,10 +34,12 @@ ssm put-parameter --name /lodge104/lodgemaster-keys/password --type
 SecureString --overwrite --value <new-value>`). No redeploy is required.
 Because the value is cached for the lifetime of each Lambda execution
 environment, an already-warm environment keeps using the old value until it
-is recycled; Lambda normally recycles idle environments within a couple of
-hours, well inside this function's 15-minute schedule tolerance. To force
-immediate pickup, publish a trivial no-op update to `ScrapperFunction` (or
-wait for the next natural cold start).
+is recycled. Since this function is invoked every 15 minutes, Lambda provides
+no bounded natural recycle time, so a scheduled invocation can continue using
+the old credential indefinitely. To force immediate pickup, recycle the
+execution environments (for example, by publishing a no-op update to
+`ScrapperFunction`); otherwise, the new value is picked up when an environment
+is recycled, with no guaranteed time.
 
 The `AlarmTopicArn`/`ErrorAlarmThreshold`/etc. parameters above are not
 secrets and remain plain CloudFormation parameters.
