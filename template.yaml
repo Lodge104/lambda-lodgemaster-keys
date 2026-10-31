@@ -42,7 +42,7 @@ Parameters:
 
 Globals:
   Function:
-    Runtime: nodejs20.x
+    Runtime: nodejs22.x
     Architectures: [x86_64]
     MemorySize: 10240
     Timeout: 300
@@ -88,27 +88,39 @@ Resources:
                 Resource: !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}"
 
   # ---------------------------------------------------------------------------
+  # Puppeteer + Chromium layer, built from layer/package.json by `sam build`
+  # (BuildMethod: nodejs22.x runs `npm install` and lays the result out as
+  # nodejs/node_modules automatically). Replaces the old, manually-published
+  # arn:...:layer:puppeteer:3 external layer, which is no longer referenced
+  # and can be deleted once this stack has deployed successfully.
+  # ---------------------------------------------------------------------------
+  PuppeteerLayer:
+    Type: AWS::Serverless::LayerVersion
+    Metadata:
+      BuildMethod: nodejs22.x
+    Properties:
+      LayerName: lodge104-lodgemaster-puppeteer
+      Description: Puppeteer-core + headless Chromium for the LodgeMaster scrapper
+      ContentUri: layer/
+      CompatibleRuntimes:
+        - nodejs22.x
+      CompatibleArchitectures:
+        - x86_64
+      RetentionPolicy: Delete
+
+  # ---------------------------------------------------------------------------
   # Lambda function
   # ---------------------------------------------------------------------------
   ScrapperFunction:
-    # TODO: upgrade to nodejs22.x once layer:puppeteer:3 is rebuilt for that runtime.
-    # The layer currently declares CompatibleRuntimes: [nodejs20.x] only.
-    Metadata:
-      cfn-lint:
-        ignore_checks:
-          - W2531   # nodejs20.x EOL warning – blocked on layer update
     Type: AWS::Serverless::Function
     Properties:
       # Keep the physical name so CloudFormation import matches the existing function.
       FunctionName: lodge104-lodgemaster-scrapper
       Handler: index.handler
-      CodeUri: .
+      CodeUri: src/
       Role: !GetAtt ScrapperRole.Arn
       Layers:
-        # Puppeteer + Chromium layer – managed separately (not in this repo).
-        # Version 3 is the current production version; bump this after testing
-        # a new layer version.
-        - arn:aws:lambda:us-east-1:423971488961:layer:puppeteer:3
+        - !Ref PuppeteerLayer
 
   # ---------------------------------------------------------------------------
   # EventBridge schedule  (currently DISABLED in production)

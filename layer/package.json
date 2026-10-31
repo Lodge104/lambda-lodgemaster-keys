@@ -1,0 +1,11 @@
+{
+  "name": "lodgemaster-scrapper-puppeteer-layer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Headless Chromium + Puppeteer runtime, packaged as a Lambda layer for lodge104-lodgemaster-scrapper. Built automatically by `sam build` (see template.yaml PuppeteerLayer resource) and published by the CodePipeline deploy stage.",
+  "license": "ISC",
+  "dependencies": {
+    "@sparticuz/chromium": "~153.0.0",
+    "puppeteer-core": "~25.16.0"
+  }
+}

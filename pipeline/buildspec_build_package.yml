@@ -2,12 +2,16 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: 20
+      nodejs: 22
       python: 3.12
     commands:
       - pip install --upgrade pip
       - pip install --upgrade awscli aws-sam-cli
-      - npm ci
+      # Production-only install: devDependencies (chromium/puppeteer-core,
+      # kept for local dev convenience) must not be bundled into the
+      # function package. They are built separately into the Lambda layer
+      # from layer/package.json by `sam build`.
+      - npm ci --omit=dev
   build:
     commands:
       - sam build --template "${SAM_TEMPLATE}"

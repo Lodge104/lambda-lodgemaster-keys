@@ -2,7 +2,7 @@
   "name": "lodgemaster-scrapper",
   "version": "1.0.0",
   "description": "Pull data securily from lodgemaster without any available API",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -16,7 +16,7 @@
     "url": "https://github.com/Lodge104/lodgemaster-scrapper/issues"
   },
   "homepage": "https://github.com/Lodge104/lodgemaster-scrapper#readme",
-  "dependencies": {
+  "devDependencies": {
     "@sparticuz/chromium": "~153.0.0",
     "puppeteer-core": "~25.16.0"
   }
