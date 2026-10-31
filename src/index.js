@@ -1,10 +1,18 @@
-import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 
-import {
+const require = createRequire(import.meta.url);
+const importFromNodePath = (name) =>
+  import(pathToFileURL(require.resolve(name)).href);
+const [{ default: puppeteer }, { default: chromium }] = await Promise.all([
+  importFromNodePath("puppeteer-core"),
+  importFromNodePath("@sparticuz/chromium"),
+]);
+
+const {
   DynamoDBClient,
   BatchWriteItemCommand,
-} from "@aws-sdk/client-dynamodb";
+} = require("@aws-sdk/client-dynamodb");
 
 const REGION = "us-east-1";
 const TABLE_NAME = process.env.TABLE_NAME || "lodge104-keys";
