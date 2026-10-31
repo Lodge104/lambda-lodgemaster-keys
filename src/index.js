@@ -13,9 +13,23 @@ const {
   DynamoDBClient,
   BatchWriteItemCommand,
 } = require("@aws-sdk/client-dynamodb");
+const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
 
-const REGION = "us-east-1";
+const REGION = process.env.AWS_REGION || "us-east-1";
 const TABLE_NAME = process.env.TABLE_NAME || "lodge104-keys";
+
+// LodgeMaster credentials live in SSM Parameter Store (SecureString), never
+// in plaintext Lambda env vars or CloudFormation parameters. Fetched once
+// per execution environment (cold start) and reused across warm invocations.
+const ssmClient = new SSMClient({ region: REGION });
+const getParameter = (name) =>
+  ssmClient
+    .send(new GetParameterCommand({ Name: name, WithDecryption: true }))
+    .then((res) => res.Parameter.Value);
+const [USERNAME, PASSWORD] = await Promise.all([
+  getParameter(process.env.USERNAME_PARAM_NAME),
+  getParameter(process.env.PASSWORD_PARAM_NAME),
+]);
 
 // LodgeMaster now delegates login to an OpenID Connect identity server:
 //   lodgemaster-client -> portal.oa-scouting.org -> id.oa-scouting.org (login)
@@ -49,8 +63,8 @@ async function login(page) {
 
   // The request is redirected to the identity server login form.
   await page.waitForSelector("#Username", { timeout: 30000 });
-  await page.type("#Username", process.env.USERNAME);
-  await page.type("#Password", process.env.PASSWORD);
+  await page.type("#Username", USERNAME);
+  await page.type("#Password", PASSWORD);
 
   const submitSelector = "form.oa-form button[type=submit]";
   await page.waitForSelector(submitSelector);

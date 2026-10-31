@@ -12,6 +12,38 @@ existing pipeline stack. To enable the schedule after deploying this update,
 update the pipeline stack once and set `ScheduleState` to `ENABLED`, keeping
 the current values for all other parameters.
 
+## LodgeMaster credentials
+
+The OA Scouting portal username/password are stored as `SecureString`
+parameters in SSM Parameter Store:
+
+- `/lodge104/lodgemaster-keys/username`
+- `/lodge104/lodgemaster-keys/password`
+
+`ScrapperFunction` reads them directly at startup (`GetParameter` with
+`WithDecryption: true`), using a policy on `ScrapperRole` scoped to exactly
+those two parameter ARNs plus `kms:Decrypt` restricted to
+`kms:ViaService: ssm.<region>.amazonaws.com`. The credential value never
+passes through a CloudFormation parameter or a Lambda environment variable
+in plaintext, so it can't be read back via `DescribeStacks`,
+`GetFunctionConfiguration`, or pipeline logs — only the SSM parameter *names*
+are, which are not sensitive.
+
+To rotate a credential, update the SSM parameter value directly (e.g. `aws
+ssm put-parameter --name /lodge104/lodgemaster-keys/password --type
+SecureString --overwrite --value <new-value>`). No redeploy is required.
+Because the value is cached for the lifetime of each Lambda execution
+environment, an already-warm environment keeps using the old value until it
+is recycled. Since this function is invoked every 15 minutes, Lambda provides
+no bounded natural recycle time, so a scheduled invocation can continue using
+the old credential indefinitely. To force immediate pickup, recycle the
+execution environments (for example, by publishing a no-op update to
+`ScrapperFunction`); otherwise, the new value is picked up when an environment
+is recycled, with no guaranteed time.
+
+The `AlarmTopicArn`/`ErrorAlarmThreshold`/etc. parameters above are not
+secrets and remain plain CloudFormation parameters.
+
 ## Monitoring & alerts
 
 The stack defines a CloudWatch alarm, `ScrapperErrorAlarm`, that watches the

@@ -423,16 +423,6 @@ Resources:
                   - "s3:PutObject"
                 Resource:
                   - !Sub "arn:${AWS::Partition}:s3:::${PipelineArtifactsBucket}/*"
-        - PolicyName: ReadDeploySecrets
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "ssm:GetParameter"
-                  - "ssm:GetParameters"
-                Resource:
-                  - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/lodge104/lodgemaster-keys/*"
         - PolicyName: AssumeStagePipExecutionRoles
           PolicyDocument:
             Version: "2012-10-17"
