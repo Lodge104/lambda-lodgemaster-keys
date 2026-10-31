@@ -55,7 +55,7 @@ Parameters:
     Description: >
       Number of Lambda invocation errors within the evaluation window
       (ErrorAlarmPeriodSeconds) that triggers the error alarm.
-    Default: 12
+    Default: 4
 
   ErrorAlarmPeriodSeconds:
     Type: Number
@@ -178,13 +178,15 @@ Resources:
   # ---------------------------------------------------------------------------
   ScrapperErrorAlarm:
     Type: AWS::CloudWatch::Alarm
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AlarmName: "LodgeMaster API Key Refresh Lambda Function"
       AlarmDescription: >
-        This alarm detects high error counts. Errors includes the exceptions
-        thrown by the code as well as exceptions thrown by the Lambda
-        runtime. You can check the logs related to the function to diagnose
-        the issue.
+        This alarm detects high error counts. The Errors metric includes the
+        exceptions thrown by the code as well as exceptions thrown by the
+        Lambda runtime. You can check the logs related to the function to
+        diagnose the issue.
 
         This function is used every 15 minutes to refresh the keys to
         LodgeMaster. If this alarm has sounded, it has failed consistently
@@ -201,7 +203,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: !Ref ErrorAlarmThreshold
       ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: missing
+      TreatMissingData: notBreaching
       ActionsEnabled: true
       AlarmActions:
         - !Ref AlarmTopicArn

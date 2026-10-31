@@ -16,11 +16,12 @@ the current values for all other parameters.
 
 The stack defines a CloudWatch alarm, `ScrapperErrorAlarm`, that watches the
 `Errors` metric (`AWS/Lambda` namespace) for the `ScrapperFunction`. By
-default it fires when the function logs 12 or more errors within a one-hour
-window (`ErrorAlarmThreshold` / `ErrorAlarmPeriodSeconds`), and clears when
-the function reports no errors in a later window. Both the `ALARM` and `OK`
-transitions publish to the SNS topic referenced by the `AlarmTopicArn`
-parameter.
+default it fires when the function has four or more failed invocations within
+a one-hour window (`ErrorAlarmThreshold` / `ErrorAlarmPeriodSeconds`), matching
+the four scheduled invocations per hour. It returns to `OK` when the error
+count falls below the threshold; a window with no error datapoint is treated as
+healthy. Both the `ALARM` and `OK` transitions publish to the SNS topic
+referenced by the `AlarmTopicArn` parameter.
 
 That topic — `lodge104-lambda` — is **shared** across other Lodge 104 Lambda
 functions (not just this one) and already has email, SMS, and Slack
@@ -36,21 +37,40 @@ override the `AlarmTopicArn` parameter at deploy time.
 
 Both the CloudWatch alarm (`LodgeMaster API Key Refresh Lambda Function`) and
 the SNS topic it publishes to pre-date this stack and were created directly
-in the console. The alarm is now defined in `template.yaml`, but since it
-already exists outside of CloudFormation, a plain `sam deploy` on a stack
-that has never seen it will try to **create** a new alarm with that name.
-`AWS::CloudWatch::Alarm` creation silently overwrites an existing alarm of
-the same name rather than failing outright, which still leaves the alarm
-untracked by the stack (and liable to be deleted if that create ever rolls
-back). To adopt the live alarm safely, import it into the stack once instead
-of deploying normally:
+in the console. A normal deployment can overwrite an existing alarm with the
+same name, including its threshold, evaluation settings, and notification
+actions. Import the alarm when you need to adopt and preserve its live
+configuration rather than allowing a normal deployment to reconcile it with
+the template.
+
+The CodePipeline deploys on every push to `main`. Before merging a change that
+adds this alarm, pause deployment by disabling the inbound transition to
+`DeployProd`, and ensure no deployment is already in progress:
 
 ```bash
+aws codepipeline disable-stage-transition \
+  --pipeline-name <pipeline-name> \
+  --stage-name DeployProd \
+  --transition-type Inbound \
+  --reason "Import the existing alarm before deployment"
+```
+
+Package the template (including its local `CodeUri` and `ContentUri` assets)
+and use the packaged template for the import change set:
+
+```bash
+sam build --template-file template.yaml
+sam package \
+  --template-file .aws-sam/build/template.yaml \
+  --s3-bucket <pipeline-artifact-bucket> \
+  --region us-east-1 \
+  --output-template-file packaged-prod.yaml
+
 aws cloudformation create-change-set \
   --stack-name lodge104-lodgemaster-keys \
   --change-set-type IMPORT \
   --change-set-name import-scrapper-error-alarm \
-  --template-body file://template.yaml \
+  --template-body file://packaged-prod.yaml \
   --parameters <existing-parameter-overrides> \
   --resources-to-import '[{"ResourceType":"AWS::CloudWatch::Alarm","LogicalResourceId":"ScrapperErrorAlarm","ResourceIdentifier":{"AlarmName":"LodgeMaster API Key Refresh Lambda Function"}}]' \
   --capabilities CAPABILITY_NAMED_IAM
@@ -58,8 +78,14 @@ aws cloudformation create-change-set \
 aws cloudformation execute-change-set \
   --stack-name lodge104-lodgemaster-keys \
   --change-set-name import-scrapper-error-alarm
+
+aws codepipeline enable-stage-transition \
+  --pipeline-name <pipeline-name> \
+  --stage-name DeployProd \
+  --transition-type Inbound
 ```
 
-After the import completes, subsequent `sam deploy`/pipeline runs manage the
-alarm like any other stack resource. The SNS topic itself is never imported
-or deleted by this stack — it is only read via the `AlarmTopicArn` parameter.
+Resume deployment only after the import succeeds. Subsequent pipeline runs
+manage the alarm like any other stack resource. The SNS topic itself is never
+imported or deleted by this stack — it is only read via the `AlarmTopicArn`
+parameter.
