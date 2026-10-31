@@ -1,0 +1,28 @@
+version: 0.2
+env:
+  # Resolved by CodeBuild with its service role before any role is assumed.
+  parameter-store:
+    LODGEMASTER_USERNAME: /lodge104/lodgemaster-keys/username
+    LODGEMASTER_PASSWORD: /lodge104/lodgemaster-keys/password
+phases:
+  install:
+    runtime-versions:
+      python: 3.12
+    commands:
+      - pip install --upgrade pip
+      - pip install --upgrade awscli aws-sam-cli
+  build:
+    commands:
+      - . ./assume-role.sh ${ENV_PIPELINE_EXECUTION_ROLE} deploy
+      - >
+        sam deploy --stack-name ${ENV_STACK_NAME}
+        --template ${ENV_TEMPLATE}
+        --capabilities CAPABILITY_NAMED_IAM
+        --region ${ENV_REGION}
+        --s3-bucket ${ENV_BUCKET}
+        --no-fail-on-empty-changeset
+        --role-arn ${ENV_CLOUDFORMATION_EXECUTION_ROLE}
+        --parameter-overrides
+        "LodgeMasterUsername=\"${LODGEMASTER_USERNAME}\""
+        "LodgeMasterPassword=\"${LODGEMASTER_PASSWORD}\""
+        "ScheduleState=${SCHEDULE_STATE}"
