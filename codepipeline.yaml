@@ -48,7 +48,7 @@ Parameters:
   ScheduleState:
     Type: String
     AllowedValues: [ENABLED, DISABLED]
-    Default: "DISABLED"
+    Default: "ENABLED"
     Description: Whether the 15-minute EventBridge trigger is enabled after deploy.
   # Leave empty when this stack owns the connection, including after OAuth completes.
   # Supply an ARN only to reuse a connection managed outside this stack.
