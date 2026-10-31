@@ -106,7 +106,7 @@ Resources:
         - nodejs22.x
       CompatibleArchitectures:
         - x86_64
-      RetentionPolicy: Retain
+      RetentionPolicy: Delete
 
   # ---------------------------------------------------------------------------
   # Lambda function
