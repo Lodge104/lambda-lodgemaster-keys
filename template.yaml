@@ -40,6 +40,28 @@ Parameters:
       Whether the EventBridge schedule that triggers this function is enabled.
       Verified working in production; defaults to ENABLED.
 
+  AlarmTopicArn:
+    Type: String
+    Description: >
+      ARN of the SNS topic that receives operational alerts for this
+      function. Defaults to the existing "lodge104-lambda" topic, which is
+      shared with other Lodge 104 Lambda functions and already has email,
+      SMS, and Slack subscribers. Because it is shared, it is referenced
+      here by ARN rather than owned/created by this stack.
+    Default: "arn:aws:sns:us-east-1:423971488961:lodge104-lambda"
+
+  ErrorAlarmThreshold:
+    Type: Number
+    Description: >
+      Number of Lambda invocation errors within the evaluation window
+      (ErrorAlarmPeriodSeconds) that triggers the error alarm.
+    Default: 12
+
+  ErrorAlarmPeriodSeconds:
+    Type: Number
+    Description: Evaluation window, in seconds, used to sum invocation errors for the alarm.
+    Default: 3600
+
 Globals:
   Function:
     Runtime: nodejs22.x
@@ -146,6 +168,46 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt FifteenMinuteRule.Arn
 
+  # ---------------------------------------------------------------------------
+  # CloudWatch alarm + SNS notification
+  # Keep the physical AlarmName so CloudFormation import matches the existing
+  # alarm (originally created outside any stack). Notifications publish to the
+  # shared "lodge104-lambda" SNS topic (see AlarmTopicArn parameter); that
+  # topic is intentionally NOT defined/owned here since other Lodge 104
+  # Lambda functions' alarms also publish to it.
+  # ---------------------------------------------------------------------------
+  ScrapperErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "LodgeMaster API Key Refresh Lambda Function"
+      AlarmDescription: >
+        This alarm detects high error counts. Errors includes the exceptions
+        thrown by the code as well as exceptions thrown by the Lambda
+        runtime. You can check the logs related to the function to diagnose
+        the issue.
+
+        This function is used every 15 minutes to refresh the keys to
+        LodgeMaster. If this alarm has sounded, it has failed consistently
+        for the last hour. This function is required to pull or push data to
+        LodgeMaster.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ScrapperFunction
+      Statistic: Sum
+      Period: !Ref ErrorAlarmPeriodSeconds
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: !Ref ErrorAlarmThreshold
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref AlarmTopicArn
+      OKActions:
+        - !Ref AlarmTopicArn
+
 Outputs:
   ScrapperFunctionArn:
     Description: ARN of the LodgeMaster scrapper Lambda function
@@ -158,3 +220,11 @@ Outputs:
   FifteenMinuteRuleArn:
     Description: ARN of the EventBridge schedule rule
     Value: !GetAtt FifteenMinuteRule.Arn
+
+  ScrapperErrorAlarmArn:
+    Description: ARN of the CloudWatch alarm monitoring ScrapperFunction invocation errors
+    Value: !GetAtt ScrapperErrorAlarm.Arn
+
+  AlarmTopicArn:
+    Description: ARN of the SNS topic that receives alarm notifications
+    Value: !Ref AlarmTopicArn
