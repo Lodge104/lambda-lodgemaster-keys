@@ -18,6 +18,6 @@
   "homepage": "https://github.com/Lodge104/lodgemaster-scrapper#readme",
   "dependencies": {
     "@sparticuz/chromium": "~126.0.0",
-    "puppeteer-core": "~22.15.0"
+    "puppeteer-core": "~25.16.0"
   }
 }
