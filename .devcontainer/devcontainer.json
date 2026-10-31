@@ -1,11 +1,9 @@
 {
-  "image": "mcr.microsoft.com/devcontainers/universal:linux",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node",
   "features": {
     "ghcr.io/devcontainers/features/aws-cli:1": {},
     "ghcr.io/flexwie/devcontainer-features/op:1": {},
-    "ghcr.io/devcontainers/features/docker-in-docker:4": {},
-    "ghcr.io/devcontainers/features/node:2": {},
-    "ghcr.io/devcontainers-extra/features/uv:1": {}
+    "ghcr.io/lodge104/devcontainer.features/aws-sam-cli:latest": {}
   },
   "customizations": {
     "vscode": {
@@ -15,8 +13,8 @@
         "esbenp.prettier-vscode",
         "arifum.bedrock-vscode-chat",
         "amazonwebservices.aws-toolkit-vscode",
-        "4ops.terraform",
-        "hashicorp.terraform"
+        "hashicorp.terraform",
+        "redhat.vscode-yaml"
       ]
     }
   }
