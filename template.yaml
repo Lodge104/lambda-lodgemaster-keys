@@ -1,0 +1,148 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  lodge104-lodgemaster-keys
+  Scrapes LodgeMaster session cookies via Puppeteer and stores them in DynamoDB.
+
+# ---------------------------------------------------------------------------
+# Parameters – secrets are NoEcho so they never appear in the console or logs.
+# Populate them at deploy time or store in AWS Systems Manager Parameter Store
+# and reference with {{resolve:ssm:...}} instead.
+# ---------------------------------------------------------------------------
+Parameters:
+  LodgeMasterUsername:
+    Type: String
+    Description: OA Scouting portal username (email address)
+    NoEcho: true
+
+  LodgeMasterPassword:
+    Type: String
+    Description: OA Scouting portal password
+    NoEcho: true
+
+  CookieNames:
+    Type: String
+    Description: >
+      Optional comma-separated allow-list of cookie names to persist.
+      Leave blank to capture every cookie from the LodgeMaster / portal hosts.
+    Default: ""
+
+  TableName:
+    Type: String
+    Description: DynamoDB table that receives the scraped cookies
+    Default: lodge104-keys
+
+  ScheduleState:
+    Type: String
+    AllowedValues: [ENABLED, DISABLED]
+    Default: DISABLED
+    Description: >
+      Whether the EventBridge schedule that triggers this function is enabled.
+      Set to ENABLED once you have verified the function works correctly.
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Architectures: [x86_64]
+    MemorySize: 10240
+    Timeout: 300
+    EphemeralStorage:
+      Size: 10240
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref TableName
+        USERNAME: !Ref LodgeMasterUsername
+        PASSWORD: !Ref LodgeMasterPassword
+        COOKIE_NAMES: !Ref CookieNames
+        # Required so Chromium can write its tmp files inside the Lambda sandbox
+        HOME: /tmp
+
+Resources:
+  # ---------------------------------------------------------------------------
+  # IAM execution role
+  # ---------------------------------------------------------------------------
+  ScrapperRole:
+    Type: AWS::IAM::Role
+    Properties:
+      # Keep the physical name so CloudFormation import matches the existing role.
+      RoleName: lodge104-lodgemaster-scrapper-role-1ox3tupm
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        # Basic CloudWatch Logs access
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBCookieAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # Least-privilege: only the operations actually used by index.js
+              - Sid: BatchWrite
+                Effect: Allow
+                Action: dynamodb:BatchWriteItem
+                Resource: !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${TableName}"
+
+  # ---------------------------------------------------------------------------
+  # Lambda function
+  # ---------------------------------------------------------------------------
+  ScrapperFunction:
+    # TODO: upgrade to nodejs22.x once layer:puppeteer:3 is rebuilt for that runtime.
+    # The layer currently declares CompatibleRuntimes: [nodejs20.x] only.
+    Metadata:
+      cfn-lint:
+        ignore_checks:
+          - W2531   # nodejs20.x EOL warning – blocked on layer update
+    Type: AWS::Serverless::Function
+    Properties:
+      # Keep the physical name so CloudFormation import matches the existing function.
+      FunctionName: lodge104-lodgemaster-scrapper
+      Handler: index.handler
+      CodeUri: .
+      Role: !GetAtt ScrapperRole.Arn
+      Layers:
+        # Puppeteer + Chromium layer – managed separately (not in this repo).
+        # Version 3 is the current production version; bump this after testing
+        # a new layer version.
+        - arn:aws:lambda:us-east-1:423971488961:layer:puppeteer:3
+
+  # ---------------------------------------------------------------------------
+  # EventBridge schedule  (currently DISABLED in production)
+  # ---------------------------------------------------------------------------
+  FifteenMinuteRule:
+    Type: AWS::Events::Rule
+    Properties:
+      # Keep the physical name so CloudFormation import matches the existing rule.
+      Name: Fifteen-Minutes
+      Description: Triggers the LodgeMaster cookie scrapper every 15 minutes
+      ScheduleExpression: rate(15 minutes)
+      State: !Ref ScheduleState
+      Targets:
+        - Id: ScrapperFunctionTarget
+          Arn: !GetAtt ScrapperFunction.Arn
+
+  # Explicit resource-based permission so EventBridge can invoke the function.
+  ScrapperInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt ScrapperFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt FifteenMinuteRule.Arn
+
+Outputs:
+  ScrapperFunctionArn:
+    Description: ARN of the LodgeMaster scrapper Lambda function
+    Value: !GetAtt ScrapperFunction.Arn
+
+  ScrapperRoleArn:
+    Description: ARN of the Lambda execution role
+    Value: !GetAtt ScrapperRole.Arn
+
+  FifteenMinuteRuleArn:
+    Description: ARN of the EventBridge schedule rule
+    Value: !GetAtt FifteenMinuteRule.Arn
