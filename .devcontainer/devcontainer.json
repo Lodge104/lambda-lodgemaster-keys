@@ -3,7 +3,8 @@
   "features": {
     "ghcr.io/devcontainers/features/aws-cli:1": {},
     "ghcr.io/flexwie/devcontainer-features/op:1": {},
-    "ghcr.io/lodge104/devcontainer.features/aws-sam-cli:latest": {}
+    "ghcr.io/lodge104/devcontainer.features/aws-sam-cli:latest": {},
+    "ghcr.io/devcontainers-extra/features/uv:1": {}
   },
   "customizations": {
     "vscode": {
