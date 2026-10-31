@@ -1,10 +1,10 @@
-const puppeteer = require("puppeteer-core");
-const chromium = require("@sparticuz/chromium");
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 
-const {
+import {
   DynamoDBClient,
   BatchWriteItemCommand,
-} = require("@aws-sdk/client-dynamodb");
+} from "@aws-sdk/client-dynamodb";
 
 const REGION = "us-east-1";
 const TABLE_NAME = process.env.TABLE_NAME || "lodge104-keys";
@@ -121,7 +121,7 @@ async function writeCookies(cookies) {
   console.log(`Success, ${requests.length} items written to ${TABLE_NAME}`);
 }
 
-exports.handler = async () => {
+export const handler = async () => {
   const browser = await puppeteer.launch({
     args: chromium.args,
     defaultViewport: chromium.defaultViewport,
