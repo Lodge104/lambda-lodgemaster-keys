@@ -1,0 +1,7 @@
+{
+  "name": "lodgemaster-scrapper-function",
+  "version": "1.0.0",
+  "private": true,
+  "description": "lodge104-lodgemaster-scrapper Lambda handler. Deliberately has no production dependencies: @aws-sdk/client-dynamodb is provided by the Lambda Node.js runtime, and puppeteer-core/@sparticuz/chromium are provided by the PuppeteerLayer (see ../layer).",
+  "main": "index.js"
+}
