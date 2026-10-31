@@ -1,9 +1,8 @@
 version: 0.2
-env:
-  # Resolved by CodeBuild with its service role before any role is assumed.
-  parameter-store:
-    LODGEMASTER_USERNAME: /lodge104/lodgemaster-keys/username
-    LODGEMASTER_PASSWORD: /lodge104/lodgemaster-keys/password
+# LodgeMaster credentials are no longer resolved here: ScrapperFunction reads
+# them directly from SSM Parameter Store (SecureString) at runtime using its
+# own execution role, so this deploy stage no longer needs read access to
+# those parameters at all.
 phases:
   install:
     runtime-versions:
@@ -23,6 +22,4 @@ phases:
         --no-fail-on-empty-changeset
         --role-arn ${ENV_CLOUDFORMATION_EXECUTION_ROLE}
         --parameter-overrides
-        "LodgeMasterUsername=\"${LODGEMASTER_USERNAME}\""
-        "LodgeMasterPassword=\"${LODGEMASTER_PASSWORD}\""
         "ScheduleState=${SCHEDULE_STATE}"
