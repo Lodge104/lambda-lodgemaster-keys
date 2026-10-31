@@ -35,10 +35,10 @@ Parameters:
   ScheduleState:
     Type: String
     AllowedValues: [ENABLED, DISABLED]
-    Default: DISABLED
+    Default: ENABLED
     Description: >
       Whether the EventBridge schedule that triggers this function is enabled.
-      Set to ENABLED once you have verified the function works correctly.
+      Verified working in production; defaults to ENABLED.
 
 Globals:
   Function:

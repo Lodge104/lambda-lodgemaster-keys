@@ -1,5 +1,13 @@
-const puppeteer = require("puppeteer-core");
-const chromium = require("@sparticuz/chromium");
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
+
+const require = createRequire(import.meta.url);
+const importFromNodePath = (name) =>
+  import(pathToFileURL(require.resolve(name)).href);
+const [{ default: puppeteer }, { default: chromium }] = await Promise.all([
+  importFromNodePath("puppeteer-core"),
+  importFromNodePath("@sparticuz/chromium"),
+]);
 
 const {
   DynamoDBClient,
@@ -121,7 +129,7 @@ async function writeCookies(cookies) {
   console.log(`Success, ${requests.length} items written to ${TABLE_NAME}`);
 }
 
-exports.handler = async () => {
+export const handler = async () => {
   const browser = await puppeteer.launch({
     args: chromium.args,
     defaultViewport: chromium.defaultViewport,
