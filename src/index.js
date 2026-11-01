@@ -35,9 +35,17 @@ const [USERNAME, PASSWORD] = await Promise.all([
 //   lodgemaster-client -> portal.oa-scouting.org -> id.oa-scouting.org (login)
 const START_URL = "https://lodgemaster-client.oa-scouting.org/";
 const IDENTITY_HOST = "id.oa-scouting.org";
+// Includes id.oa-scouting.org itself: the identity server's own session
+// cookie (set during the login redirect chain, since the page is briefly
+// on that host) is required for later silent OIDC re-checks to succeed.
+// Omitting it left consumers (e.g. lodge104-memberdata) with an auth
+// cookie jar the app considered incomplete, which surfaced as an infinite
+// redirect loop back to id.oa-scouting.org/connect/authorize rather than
+// a clean "not logged in" response.
 const COOKIE_URLS = [
   "https://lodgemaster-client.oa-scouting.org/",
   "https://portal.oa-scouting.org/",
+  "https://id.oa-scouting.org/",
 ];
 
 // Optional comma separated allow-list of cookie names to store. When unset,
